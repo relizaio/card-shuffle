@@ -1,8 +1,7 @@
 # card-shuffle
 
 Demo monorepo for the Mafia card-shuffle game, used to exercise ReARM's
-programmatic feature-set switching and PR-blocking flows on the dev
-instance at `https://dev.rearmhq.com`.
+programmatic feature-set switching and PR-blocking flows.
 
 ## Layout
 
@@ -15,9 +14,8 @@ instance at `https://dev.rearmhq.com`.
 ## CI
 
 `.github/workflows/build.yml` runs on every push and submits build
-metadata + SBOMs for all three components to ReARM dev. Container images
-are pushed to
-`registry.test.relizahub.com/a98e122c-3265-43da-b73d-ce21f49c397a-public`
+metadata + SBOMs for all three components. Container images are pushed
+to `registry.test.relizahub.com/a98e122c-3265-43da-b73d-ce21f49c397a-public`
 and the helm chart is OCI-pushed to the same namespace. `create_component`
 is on so the components self-provision on first build.
 
@@ -27,4 +25,4 @@ pinned to `@main` for the duration of this demo.
 ## Secrets used
 
 - `DOCKER_LOGIN`, `DOCKER_TOKEN` — registry auth (provisioned on the repo)
-- `REARM_API_ID`, `REARM_API_KEY` — FREEFORM key for the dev ReARM org
+- `REARM_API_ID`, `REARM_API_KEY` — FREEFORM key for the ReARM org
