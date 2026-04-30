@@ -1,0 +1,70 @@
+on: [push]
+
+name: Build Mafia Components And Submit Metadata To Reliza ReARM Dev
+
+jobs:
+  build-mafia-vue:
+    permissions:
+      contents: read
+      id-token: write
+    name: Build And Push mafia-vue
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build And Push mafia-vue to ReARM Dev
+        uses: relizaio/rearm-docker-action@main
+        with:
+          registry_username: ${{ secrets.DOCKER_LOGIN }}
+          registry_password: ${{ secrets.DOCKER_TOKEN }}
+          registry_host: registry.test.relizahub.com
+          image_namespace: registry.test.relizahub.com/a98e122c-3265-43da-b73d-ce21f49c397a-public
+          image_name: mafia-vue
+          rearm_api_id: ${{ secrets.REARM_API_ID }}
+          rearm_api_key: ${{ secrets.REARM_API_KEY }}
+          rearm_api_url: https://dev.rearmhq.com
+          path: mafia-vue
+          enable_sbom: true
+          source_code_sbom_type: npm
+          create_component: 'true'
+  build-mafia-express:
+    permissions:
+      contents: read
+      id-token: write
+    name: Build And Push mafia-express
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build And Push mafia-express to ReARM Dev
+        uses: relizaio/rearm-docker-action@main
+        with:
+          registry_username: ${{ secrets.DOCKER_LOGIN }}
+          registry_password: ${{ secrets.DOCKER_TOKEN }}
+          registry_host: registry.test.relizahub.com
+          image_namespace: registry.test.relizahub.com/a98e122c-3265-43da-b73d-ce21f49c397a-public
+          image_name: mafia-express
+          rearm_api_id: ${{ secrets.REARM_API_ID }}
+          rearm_api_key: ${{ secrets.REARM_API_KEY }}
+          rearm_api_url: https://dev.rearmhq.com
+          path: mafia-express
+          enable_sbom: true
+          source_code_sbom_type: npm
+          create_component: 'true'
+  build-mafia-helm:
+    permissions:
+      contents: write
+      id-token: write
+    name: Build And Push mafia Helm Chart
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build mafia Helm Chart and push to ReARM Dev
+        uses: relizaio/rearm-helm-action@main
+        with:
+          registry_username: ${{ secrets.DOCKER_LOGIN }}
+          registry_password: ${{ secrets.DOCKER_TOKEN }}
+          registry_host: registry.test.relizahub.com/a98e122c-3265-43da-b73d-ce21f49c397a-public
+          helm_chart_name: mafia
+          rearm_api_id: ${{ secrets.REARM_API_ID }}
+          rearm_api_key: ${{ secrets.REARM_API_KEY }}
+          rearm_api_url: https://dev.rearmhq.com
+          enable_sbom: true
+          path: mafia-helm
+          create_component: 'true'
+          limit_to_branches: main

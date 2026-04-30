@@ -1,0 +1,25 @@
+on: [push]
+
+name: Build Docker Image And Submit Metadata To ReARM
+
+jobs:
+  build-mafia-express:
+    permissions:
+      id-token: write
+    name: Build And Push Mafia Express to ReARM
+    runs-on: ubuntu-latest
+    steps:
+      - name: ReARM Build And Submit Mafia Express
+        uses: relizaio/rearm-docker-action@a2d6978bea42cc6d707515bb927f0c693427fe58 # v1.10.0
+        with:
+          registry_username: ${{ secrets.DOCKER_LOGIN }}
+          registry_password: ${{ secrets.DOCKER_TOKEN }}
+          registry_host: docker.io
+          image_namespace: taleodor
+          image_name: mafia-express
+          rearm_api_id: ${{ secrets.REARM_API_ID }}
+          rearm_api_key: ${{ secrets.REARM_API_KEY }}
+          rearm_api_url: https://reliza.rearmhq.com
+          enable_sbom: true
+          source_code_sbom_type: 'npm'
+          enable_public_cosign_sigstore: 'true'
