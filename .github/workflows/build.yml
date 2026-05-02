@@ -1,4 +1,8 @@
-on: [push]
+# on: [push]
+on:
+  push:
+    branches: [main]    # post-merge commits to main only
+  pull_request:         # everything in feature branches goes through PR event
 
 name: Build Mafia Components And Submit Metadata To Reliza ReARM Dev
 
