@@ -1,0 +1,13 @@
+{
+  "name": "card-shuffle-test-harness",
+  "version": "1.0.0",
+  "description": "Puppeteer-based smoke test for the Mafia Card Shuffle UI",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "smoke": "node smoke.mjs"
+  },
+  "devDependencies": {
+    "puppeteer": "^24.42.0"
+  }
+}
