@@ -79,6 +79,10 @@ jobs:
       id-token: write
     name: Submit mafia-test-harness Metadata
     runs-on: ubuntu-latest
+    # Serialize to avoid two parallel push+pull_request invocations both calling
+    # getversion --createcomponent and racing into duplicate components.
+    concurrency:
+      group: submit-mafia-test-harness-${{ github.ref }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -97,6 +101,9 @@ jobs:
           rearm_api_url: https://dev.rearmhq.com
           repo_path: test-harness
           create_component: 'true'
+          # Pin to one of the two duplicates created during initial setup races
+          # so syncbranches/getversion don't error out on the ambiguity.
+          component: 4f7f632e-ff27-4f49-a8f0-b906359619a5
 
       - name: Generate npm SBOM
         if: steps.init.outputs.do_build == 'true'
@@ -124,6 +131,7 @@ jobs:
             -b "$rearm_branch_name" \
             -v "${{ steps.init.outputs.full_version }}" \
             --lifecycle ASSEMBLED \
+            --component 4f7f632e-ff27-4f49-a8f0-b906359619a5 \
             --vcstype git \
             --vcsuri "${{ github.server_url }}/${{ github.repository }}" \
             --repo-path test-harness \
