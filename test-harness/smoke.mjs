@@ -101,8 +101,13 @@ try {
 
     // ---- Test 5: Two players in same room, host shuffles cards ----
     const roomId = 'tst-' + Math.floor(Math.random() * 1e9).toString(36)
-    const p1 = await browser.newPage()
-    const p2 = await browser.newPage()
+    // Two players need isolated localStorage so the server treats them as
+    // distinct uuids; otherwise the second join is interpreted as a rename
+    // of the first.
+    const ctx1 = await browser.createBrowserContext()
+    const ctx2 = await browser.createBrowserContext()
+    const p1 = await ctx1.newPage()
+    const p2 = await ctx2.newPage()
     recordPage(p1, 'p1')
     recordPage(p2, 'p2')
 
@@ -110,26 +115,38 @@ try {
     await p1.waitForSelector('#enter-name-input', { timeout: 10000 })
     await p1.type('#enter-name-input', 'Alice')
     await p1.evaluate(() => {
-        const form = document.querySelector('form')
-        form.requestSubmit()
+        const btn = Array.from(document.querySelectorAll('button')).find((b) => b.type === 'submit')
+        btn.click()
     })
-    await check('p1 joined as Alice / Host', async () => {
-        await p1.waitForFunction(() => document.body.innerText.includes('joined this room as'), { timeout: 10000 })
+    await check('p1 joined as Alice and is game master', async () => {
+        await p1.waitForFunction(() => document.body.innerText.includes('Alice'), { timeout: 10000 })
         const text = await p1.evaluate(() => document.body.innerText)
-        if (!text.includes('Alice')) throw new Error(`Alice not in playerlist; got: ${text.slice(0, 500)}`)
+        if (!text.includes('You are game master of this room')) {
+            throw new Error(`game-master alert missing; got: ${text.slice(0, 500)}`)
+        }
+        if (!text.includes('Shuffle Player Order')) {
+            throw new Error(`admin Shuffle button missing; got: ${text.slice(0, 500)}`)
+        }
     })
 
     await p2.goto(`${BASE}/cards/${roomId}`, { waitUntil: 'networkidle2', timeout: 30000 })
     await p2.waitForSelector('#enter-name-input', { timeout: 10000 })
     await p2.type('#enter-name-input', 'Bob')
     await p2.evaluate(() => {
-        document.querySelector('form').requestSubmit()
+        const btn = Array.from(document.querySelectorAll('button')).find((b) => b.type === 'submit')
+        btn.click()
     })
     await check('p2 joined as Bob', async () => {
-        await p2.waitForFunction(() => document.body.innerText.includes('joined this room as'), { timeout: 10000 })
+        await p2.waitForFunction(() => document.body.innerText.includes('Bob'), { timeout: 10000 })
     })
     await check('p1 sees Bob in playerlist via socket', async () => {
         await p1.waitForFunction(() => document.body.innerText.includes('Bob'), { timeout: 10000 })
+    })
+    await check('p2 is NOT admin (only p1 is game master)', async () => {
+        const text = await p2.evaluate(() => document.body.innerText)
+        if (text.includes('Shuffle Player Order')) {
+            throw new Error('Bob should not see admin shuffle button')
+        }
     })
 
     if (errors.length === 0) {
