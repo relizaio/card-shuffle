@@ -13,18 +13,16 @@
                 <span v-if="p.admin" title="Game Master"><b-icon-shield-shaded /></span>
                 <span class="text-success" v-if="winkLink.includes(p.order)" title="Player Saw You Winking"><b-icon-bullseye /></span>
                 <span class="text-danger" v-if="listenLink.includes(p.order)" title="Player Winked To You"><b-icon-eye /></span>
-                <a href="#" v-if="admin" @click="kickPlayer(p.name)"> x</a>
+                <a href="#" v-if="admin" @click.prevent="kickPlayer(p.name)"> x</a>
             </li>
         </ul>
     </div>
     <b-alert
-      :show="alertCountDown"
+      v-model="alertVisible"
       dismissible
-      @dismissed="alertCountDown=0"
-      @dismiss-count-down="alertCountDownChanged"
     >{{ alertMsg }}</b-alert>
     <b-button v-if="admin" variant="success" @click="shuffleOrder">Shuffle Player Order!</b-button>
-    <div v-if="admin" class="transferAdmin mt-3 ml-3">
+    <div v-if="admin" class="transferAdmin mt-3 ms-3">
         <span>Transfer Game Master To: </span>
         <b-dropdown text="Select Player">
             <b-dropdown-item v-for="p in playerList" :key="p.name" @click="transferAdmin(p.name)">{{ p.name }}</b-dropdown-item>
@@ -32,17 +30,17 @@
     </div>
     <div v-if="admin" class="adminBlock">
         <h5 class="cardDistroStatus">Card distribution (only game master sees this):</h5>
-        <span v-for="gamecard in Object.keys(cards)" :key="gamecard" class="cardType">{{ gamecard }}: <b-input class="cardDistroInput" v-model='cards[gamecard].num' /></span>
-        <span class="h1 mr-3 clickable" v-b-modal.modal-add-custom-role title="Add Custom Role"><b-icon-plus-circle /></span>
+        <span v-for="gamecard in Object.keys(cards)" :key="gamecard" class="cardType">{{ gamecard }}: <b-form-input class="cardDistroInput" v-model='cards[gamecard].num' /></span>
+        <span class="h1 me-3 clickable" @click="showAddRoleModal = true" title="Add Custom Role"><b-icon-plus-circle /></span>
         <b-button variant="success" @click="shuffleCards">Shuffle Cards!</b-button>
         <div class="cardDistroStatus">Distributed {{ distributedCards }} cards for {{ playersInGame.length }} players.</div>
         <b-modal
-            ref="modal-add-custom-role"
+            v-model="showAddRoleModal"
             id="modal-add-custom-role"
             title="Add Custom Role"
             :hide-footer="true"
             >
-            <b-form @submit="addRoleSubmit">
+            <b-form @submit.prevent="addRoleSubmit">
                 <b-form-group   id="add_custom_role_input_group"
                                 label="Role"
                                 label-for="add_custom_role_input"
@@ -98,15 +96,13 @@
         <b-container>
             <b-row class="justify-content-md-center">
                     <b-col>
-                        <b-form @submit="submitName">
+                        <b-form @submit.prevent="submitName">
                             <b-input-group class="mt-3">
                                 <b-form-input id="enter-name-input"
                                             required
                                             v-model="playerName"
                                             :placeholder="(iPlayer && iPlayer.name) ? 'You may update your name here' : 'Enter your name to join this room'" />
-                                <b-input-group-append>
-                                    <b-button variant="info" type="submit">Submit</b-button>
-                                </b-input-group-append>
+                                <b-button variant="info" type="submit">Submit</b-button>
                             </b-input-group>
                         </b-form>
                     </b-col>
@@ -131,8 +127,9 @@ export default {
             listenLink: [],
             room: this.$route.params.room,
             playerName: '',
-            alertCountDown: 0,
+            alertVisible: false,
             alertMsg: '',
+            showAddRoleModal: false,
             playerList: [],
             cards: {
                 sheriff: {
@@ -161,8 +158,7 @@ export default {
     },
     sockets: {
         adminmsg (msg) {
-            this.alertMsg = msg
-            this.alertCountDown = 5
+            this.flashAlert(msg)
         },
         winksuccess (order) {
             if (!this.winkLink.includes(order)) {
@@ -170,8 +166,7 @@ export default {
             }
         },
         cardassigned (card) {
-            this.alertMsg = 'You have been assigned a card: ' + card + '!'
-            this.alertCountDown = 5
+            this.flashAlert('You have been assigned a card: ' + card + '!')
             this.requestMyPlayer()
         },
         connect () {
@@ -200,8 +195,7 @@ export default {
             })
         },
         joinedroom (name) {
-            this.alertMsg = name + ' joined this game room!'
-            this.alertCountDown = 5
+            this.flashAlert(name + ' joined this game room!')
         },
         listensuccess (order) {
             if (!this.listenLink.includes(order)) {
@@ -209,24 +203,20 @@ export default {
             }
         },
         nametaken () {
-            this.alertMsg = 'Sorry, this name has already been taken!'
-            this.alertCountDown = 5
+            this.flashAlert('Sorry, this name has already been taken!')
         },
         playerlist (list) {
             this.playerList = list
             this.requestMyPlayer()
         },
         orderchanged (player) {
-            this.alertMsg = 'Game master changed order number of player ' + player.name + ' to ' + player.order
-            this.alertCountDown = 5
+            this.flashAlert('Game master changed order number of player ' + player.name + ' to ' + player.order)
         },
         ordershuffled () {
-            this.alertMsg = 'Game master shuffled player order!'
-            this.alertCountDown = 5
+            this.flashAlert('Game master shuffled player order!')
         },
         youareadmin () {
-            this.alertMsg = 'You are game master of this room!'
-            this.alertCountDown = 5
+            this.flashAlert('You are game master of this room!')
             this.admin = true
         },
         yourplayer (resp) {
@@ -238,18 +228,22 @@ export default {
         }
     },
     methods: {
-        addRoleSubmit (e) {
-            e.preventDefault()
+        flashAlert (msg) {
+            this.alertMsg = msg
+            this.alertVisible = false
+            this.$nextTick(() => {
+                this.alertVisible = true
+                setTimeout(() => { this.alertVisible = false }, 5000)
+            })
+        },
+        addRoleSubmit () {
             this.cards[this.customRole] = {
                 num: 0,
                 image: this.customRolePicture
             }
             this.cards = Object.assign({}, this.cards) // needed for computed property to refresh
-            this.$refs['modal-add-custom-role'].hide()
+            this.showAddRoleModal = false
             this.customRole = ''
-        },
-        alertCountDownChanged (alertCountDown) {
-            this.alertCountDown = alertCountDown
         },
         listenTo (order) {
             if (order !== 'Host' && order !== 'Guest' && order !== this.iPlayer.order) {
@@ -262,8 +256,7 @@ export default {
         },
         winkTo (order) {
             if (order === this.iPlayer.order) {
-                this.alertMsg = "You cannot wink to yourself!"
-                this.alertCountDown = 5
+                this.flashAlert("You cannot wink to yourself!")
             } else {
                 let winkObj = {
                     room: this.room,
@@ -294,10 +287,9 @@ export default {
             this.$socket.emit('requestroom', requestObj)
         },
         shuffleCards () {
-            // count and validate 
+            // count and validate
             if (this.distributedCards !== this.playersInGame.length) {
-                this.alertMsg = 'You allocated ' + this.distributedCards + ' cards for ' + this.playersInGame.length + ' players! Numbers of cards and players must be equal!'
-                this.alertCountDown = 5
+                this.flashAlert('You allocated ' + this.distributedCards + ' cards for ' + this.playersInGame.length + ' players! Numbers of cards and players must be equal!')
             } else {
                 // proceed with shuffle
                 let cardsForShuffle = {}
@@ -314,8 +306,7 @@ export default {
         shuffleOrder () {
             this.$socket.emit('shuffleorder', this.room)
         },
-        submitName (e) {
-            e.preventDefault()
+        submitName () {
             let joinObject = {
                 room: this.room,
                 name: this.playerName,

@@ -4,15 +4,13 @@
         <b-container>
             <b-row class="justify-content-md-center">
                 <b-col>
-                    <b-form @submit="submitRoom">
+                    <b-form @submit.prevent="submitRoom">
                         <b-input-group class="mt-3">
                             <b-form-input id="enter-room"
                                           v-model="room"
                                           required
                                           placeholder="Enter room name to join or create" />
-                            <b-input-group-append>
-                                <b-button variant="info" type="submit">Submit</b-button>
-                            </b-input-group-append>
+                            <b-button variant="info" type="submit">Submit</b-button>
                         </b-input-group>
                     </b-form>
                 </b-col>
@@ -29,7 +27,7 @@
             </b-row>
             <b-row class="mt-5 mb-3 justify-content-md-center">
                 <b-col>
-                    <span class="ml-2">
+                    <span class="ms-2">
                         Powered by <a href="https://rearmhq.com">ReARM</a>.
                     </span>
                 </b-col>
@@ -39,8 +37,6 @@
 </template>
 
 <script>
-import axios from 'axios'
-
 export default {
     name: 'Home',
     data () {

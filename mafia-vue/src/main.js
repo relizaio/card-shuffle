@@ -1,24 +1,23 @@
-import Vue from 'vue'
+import { createApp } from 'vue'
 import App from './App.vue'
-import { BootstrapVue, BootstrapVueIcons } from 'bootstrap-vue'
-import VueSocketIO from 'vue-socket.io'
 import router from './router'
+import { createBootstrap } from 'bootstrap-vue-next'
+import { BootstrapIconsPlugin } from 'bootstrap-icons-vue'
+import SocketPlugin from './plugins/socket.js'
 
 import 'bootstrap/dist/css/bootstrap.css'
-import 'bootstrap-vue/dist/bootstrap-vue.css'
+import 'bootstrap-vue-next/dist/bootstrap-vue-next.css'
 
-Vue.config.productionTip = false
+const app = createApp(App)
 
-Vue.use(BootstrapVue)
-Vue.use(BootstrapVueIcons)
+app.use(router)
+app.use(createBootstrap())
+app.use(BootstrapIconsPlugin)
 
-Vue.use(new VueSocketIO({
-  debug: true,
-  connection: window.location.protocol + '//' + window.location.hostname + (window.location.port ? ':' + window.location.port : ''),
-  options: { path: "/api" } //Optional options
-}))
+app.use(SocketPlugin, {
+    debug: true,
+    connection: window.location.protocol + '//' + window.location.hostname + (window.location.port ? ':' + window.location.port : ''),
+    options: { path: '/api' }
+})
 
-new Vue({
-  router,
-  render: h => h(App),
-}).$mount('#app')
+app.mount('#app')

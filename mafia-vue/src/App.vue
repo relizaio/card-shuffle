@@ -8,7 +8,7 @@
                 <b-nav-item to="/clubs">Clubs</b-nav-item>
             </b-nav>
             <github-button href="https://github.com/relizaio/rearm"
-                            class="ml-3"
+                            class="ms-3"
                             data-icon="octicon-star"
                             data-size="large"
                             data-show-count="true"
