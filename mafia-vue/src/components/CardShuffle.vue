@@ -468,12 +468,12 @@ export default {
 
 .toast-flash {
     position: fixed;
-    top: 80px;
+    bottom: 1.5rem;
     left: 50%;
     transform: translateX(-50%);
     background: var(--brand-primary-dark);
     color: #fff;
-    padding: 0.65rem 1.1rem;
+    padding: 0.7rem 1.2rem;
     border-radius: 999px;
     box-shadow: var(--shadow-md);
     font-size: 0.95rem;
@@ -489,7 +489,7 @@ export default {
 
 .toast-enter-from, .toast-leave-to {
     opacity: 0;
-    transform: translate(-50%, -8px);
+    transform: translate(-50%, 12px);
 }
 
 .panel {
