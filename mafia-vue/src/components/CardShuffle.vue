@@ -143,7 +143,7 @@
         </div>
         <div v-else-if="iPlayer.order !== 'Guest'" class="reveal-player">
             <div v-if="iPlayer.card && game === iPlayer.game" class="card-reveal">
-                <img class="card-image" :src="cardImage" :title="iPlayer.card" :alt="'Your card: ' + iPlayer.card" />
+                <img v-if="cardImage" class="card-image" :src="cardImage" :title="iPlayer.card" :alt="'Your card: ' + iPlayer.card" />
                 <span class="card-name">{{ iPlayer.card }}</span>
             </div>
             <div v-if="game > 0 && game === iPlayer.game" class="wink-block">
@@ -416,18 +416,20 @@ export default {
             return 'seat-badge-numbered'
         },
         cardImage () {
-            let cardImage = ''
-            if (this.iPlayer && this.iPlayer.card && this.cardsWithImages.includes(this.cards[this.iPlayer.card].image)) {
-                let maxNumImage = {
-                    godfather: 15,
-                    sheriff: 14,
-                    mafia: 30,
-                    villager: 58
-                }
-                let imagePostfix = 1 + Math.floor(Math.random() * maxNumImage[this.cards[this.iPlayer.card].image])
-                cardImage = this.imagePrefix + this.cards[this.iPlayer.card].image + String(imagePostfix) + '.jpg'
+            // Custom roles only live in component state, so after F5 the
+            // local `cards` map is back to the four built-ins while
+            // iPlayer.card may still be a custom-role label from the server.
+            // Without this guard the .image lookup throws and blocks render.
+            const entry = this.iPlayer && this.iPlayer.card ? this.cards[this.iPlayer.card] : null
+            if (!entry || !this.cardsWithImages.includes(entry.image)) return ''
+            const maxNumImage = {
+                godfather: 15,
+                sheriff: 14,
+                mafia: 30,
+                villager: 58
             }
-            return cardImage
+            const imagePostfix = 1 + Math.floor(Math.random() * maxNumImage[entry.image])
+            return this.imagePrefix + entry.image + String(imagePostfix) + '.jpg'
         },
         computedOrderArray () {
             let orderList = [...Array(this.playerList.length).keys()]
