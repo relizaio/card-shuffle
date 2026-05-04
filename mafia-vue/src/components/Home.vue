@@ -1,38 +1,31 @@
 <template>
-    <div>
-        <h1>Welcome to Mafia Card Shuffle!</h1>
-        <b-container>
-            <b-row class="justify-content-md-center">
-                <b-col>
-                    <b-form @submit.prevent="submitRoom">
-                        <b-input-group class="mt-3">
-                            <b-form-input id="enter-room"
-                                          v-model="room"
-                                          required
-                                          placeholder="Enter room name to join or create" />
-                            <b-button variant="info" type="submit">Submit</b-button>
-                        </b-input-group>
-                    </b-form>
-                </b-col>
-            </b-row>
-            <b-row class="mt-3 mb-3 justify-content-md-center">
-                <b-col>
-                    OR
-                </b-col>
-            </b-row>
-            <b-row class="justify-content-md-center">
-                <b-col>
-                    <b-button size="sm" variant="success" @click="generateRoom">Generate new room for me</b-button>
-                </b-col>
-            </b-row>
-            <b-row class="mt-5 mb-3 justify-content-md-center">
-                <b-col>
-                    <span class="ms-2">
-                        Powered by <a href="https://rearmhq.com">ReARM</a>.
-                    </span>
-                </b-col>
-            </b-row>
-        </b-container>
+    <div class="home">
+        <section class="hero">
+            <h1 class="hero-title">Welcome to Mafia Card Shuffle</h1>
+            <p class="hero-subtitle">
+                Deal roles for the Classic Mafia / Werewolf party game.
+                Create or join a room — share the link with your friends, and play.
+            </p>
+        </section>
+        <section class="join-card">
+            <form class="join-form" @submit.prevent="submitRoom">
+                <label for="enter-room" class="form-label">Room name</label>
+                <div class="input-row">
+                    <input
+                        id="enter-room"
+                        v-model="room"
+                        required
+                        class="form-control"
+                        placeholder="Type a room name to create or join"
+                    />
+                    <button type="submit" class="btn btn-primary">Join room</button>
+                </div>
+            </form>
+            <div class="divider"><span>or</span></div>
+            <button class="btn btn-secondary btn-block" @click="generateRoom">
+                Generate a random room for me
+            </button>
+        </section>
     </div>
 </template>
 
@@ -43,9 +36,6 @@ export default {
         return {
             room: ''
         }
-    },
-    props: {
-        msg: String
     },
     methods: {
         generateRoom () {
@@ -62,20 +52,150 @@ export default {
 }
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-h3 {
-    margin: 40px 0 0;
+.home {
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+    align-items: center;
 }
-ul {
-    list-style-type: none;
-    padding: 0;
+
+.hero {
+    text-align: center;
+    max-width: 640px;
+    padding: 1rem 0 0.25rem;
 }
-li {
-    display: inline-block;
-    margin: 0 10px;
+
+.hero-title {
+    margin: 0 0 0.5rem;
+    font-size: clamp(1.75rem, 3.5vw, 2.4rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--brand-primary-dark);
 }
-a {
-    color: #42b983;
+
+.hero-subtitle {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 1.05rem;
+}
+
+.join-card {
+    width: 100%;
+    max-width: 520px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    padding: 1.5rem;
+    box-sizing: border-box;
+}
+
+.join-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.input-row {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.form-control {
+    flex: 1;
+    padding: 0.65rem 0.85rem;
+    font-size: 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    transition: border-color 0.15s, box-shadow 0.15s;
+    min-width: 0;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 3px rgba(155, 122, 113, 0.18);
+}
+
+.btn {
+    border: 0;
+    border-radius: var(--radius-sm);
+    padding: 0.65rem 1.1rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.05s;
+    white-space: nowrap;
+}
+
+.btn:active {
+    transform: translateY(1px);
+}
+
+.btn-primary {
+    background: var(--brand-primary);
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background: var(--brand-primary-dark);
+}
+
+.btn-secondary {
+    background: var(--surface-muted);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+    background: #ece5dd;
+}
+
+.btn-block {
+    display: block;
+    width: 100%;
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    color: var(--text-muted);
+    margin: 1rem 0;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.divider::before,
+.divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
+.divider span {
+    padding: 0 0.75rem;
+}
+
+@media (max-width: 520px) {
+    .input-row {
+        flex-direction: column;
+    }
+    .btn {
+        width: 100%;
+    }
 }
 </style>

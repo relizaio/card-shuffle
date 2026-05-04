@@ -53,8 +53,8 @@ try {
     })
     await check('home submit button rendered', async () => {
         const buttons = await home.$$eval('button', (els) => els.map((e) => e.innerText.trim()))
-        if (!buttons.some((b) => b === 'Submit')) throw new Error(`Submit button not found, got: ${JSON.stringify(buttons)}`)
-        if (!buttons.some((b) => b.includes('Generate new room'))) throw new Error('Generate room button not found')
+        if (!buttons.some((b) => b === 'Join room')) throw new Error(`Join button not found, got: ${JSON.stringify(buttons)}`)
+        if (!buttons.some((b) => b.includes('Generate a random room'))) throw new Error('Generate room button not found')
     })
 
     // ---- Test 2: Generate room → redirects to /cards/<room> ----
@@ -63,7 +63,7 @@ try {
             home.waitForNavigation({ timeout: 15000 }),
             home.evaluate(() => {
                 const btns = Array.from(document.querySelectorAll('button'))
-                const gen = btns.find((b) => b.innerText.includes('Generate new room'))
+                const gen = btns.find((b) => b.innerText.includes('Generate a random room'))
                 gen.click()
             })
         ])
@@ -73,7 +73,7 @@ try {
 
     await check('room page renders welcome', async () => {
         await home.waitForFunction(
-            () => document.body.innerText.includes('Welcome to the room'),
+            () => /\bROOM\b/.test(document.body.innerText) && document.querySelector('.room-title'),
             { timeout: 10000 }
         )
     })
@@ -124,7 +124,7 @@ try {
         if (!text.includes('You are game master of this room')) {
             throw new Error(`game-master alert missing; got: ${text.slice(0, 500)}`)
         }
-        if (!text.includes('Shuffle Player Order')) {
+        if (!text.includes('Shuffle player order')) {
             throw new Error(`admin Shuffle button missing; got: ${text.slice(0, 500)}`)
         }
     })
@@ -144,7 +144,7 @@ try {
     })
     await check('p2 is NOT admin (only p1 is game master)', async () => {
         const text = await p2.evaluate(() => document.body.innerText)
-        if (text.includes('Shuffle Player Order')) {
+        if (text.includes('Shuffle player order')) {
             throw new Error('Bob should not see admin shuffle button')
         }
     })
