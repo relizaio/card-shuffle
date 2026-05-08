@@ -329,6 +329,55 @@ try {
         }
     })
 
+    // ---- Test 8: Role instruction shown when a card is dealt ----
+    // Single-player room, one villager card, shuffle, verify the dealt
+    // player sees the per-role instruction paragraph.
+    const instrRoom = 'instr-' + Math.floor(Math.random() * 1e9).toString(36)
+    const ctxIn = await browser.createBrowserContext()
+    const ip = await ctxIn.newPage()
+    recordPage(ip, 'instr')
+
+    await ip.goto(`${BASE}/cards/${instrRoom}`, { waitUntil: 'networkidle2', timeout: 30000 })
+    await ip.waitForSelector('#enter-name-input', { timeout: 10000 })
+    await ip.type('#enter-name-input', 'Frank')
+    await ip.evaluate(() => {
+        const btn = Array.from(document.querySelectorAll('button')).find((b) => b.type === 'submit')
+        btn.click()
+    })
+    await ip.waitForFunction(() => document.body.innerText.includes('You are game master of this room'), { timeout: 10000 })
+
+    // Distribute exactly 1 villager to match the single player; zero everything else
+    await ip.evaluate(() => {
+        const inputs = Array.from(document.querySelectorAll('.card-cell-input'))
+        const setVal = (el, v) => {
+            el.value = String(v)
+            el.dispatchEvent(new Event('input', { bubbles: true }))
+            el.dispatchEvent(new Event('change', { bubbles: true }))
+        }
+        // Default Mafia preset order: sheriff, godfather, mafia, villager
+        setVal(inputs[0], 0)
+        setVal(inputs[1], 0)
+        setVal(inputs[2], 0)
+        setVal(inputs[3], 1)
+    })
+    await ip.evaluate(() => {
+        Array.from(document.querySelectorAll('button')).find((b) => b.innerText.trim() === 'Shuffle cards').click()
+    })
+
+    await check('villager card-reveal includes role instruction', async () => {
+        await ip.waitForFunction(
+            () => !!document.querySelector('.card-instruction'),
+            { timeout: 10000 }
+        )
+        const text = await ip.$eval('.card-instruction', (el) => el.innerText)
+        if (!/Villager/i.test(text)) {
+            throw new Error(`instruction does not look like Villager copy: ${text.slice(0, 200)}`)
+        }
+        if (text.length < 60) {
+            throw new Error(`instruction suspiciously short: ${text}`)
+        }
+    })
+
     if (errors.length === 0) {
         console.log('\nALL CHECKS PASSED')
     } else {
