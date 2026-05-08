@@ -234,6 +234,21 @@ export default {
             this.flashAlert('You have been assigned a card: ' + card + '!')
             this.requestMyPlayer()
         },
+        customcards (cardsMap) {
+            // Server is the source of truth for custom-role definitions on
+            // this room. Merge into the local cards map without clobbering
+            // the admin's in-progress `num` counts on built-ins or roles
+            // they've already typed.
+            const incoming = cardsMap || {}
+            Object.keys(incoming).forEach((name) => {
+                if (!this.cards[name]) {
+                    this.cards[name] = { num: 0, image: incoming[name].image || '' }
+                } else {
+                    this.cards[name].image = incoming[name].image || this.cards[name].image
+                }
+            })
+            this.cards = Object.assign({}, this.cards)
+        },
         connect () {
             console.log('socket connected')
             this.requestRoom()
@@ -298,11 +313,18 @@ export default {
             flashTimer = setTimeout(() => { this.alertVisible = false }, 5000)
         },
         addRoleSubmit () {
+            // Optimistic local update; server will broadcast back via
+            // `customcards` so other admins / future reloads see it too.
             this.cards[this.customRole] = {
                 num: 0,
                 image: this.customRolePicture
             }
             this.cards = Object.assign({}, this.cards)
+            this.$socket.emit('addcustomcard', {
+                room: this.room,
+                name: this.customRole,
+                image: this.customRolePicture
+            })
             this.showAddRoleModal = false
             this.customRole = ''
         },

@@ -70,8 +70,21 @@ io.on('connection', function(socket){
                     io.to(curUser.id).emit('youareadmin')
                 }
             }
+            io.to(socket.id).emit('customcards', gameStatus[roomobj.room].customCards || {})
         }
         sendPlayerList(roomobj.room, socket.id)
+    })
+
+    socket.on('addcustomcard', function (obj) {
+        if (!obj || !obj.room || !obj.name) return
+        let room = gameStatus[obj.room]
+        if (!room) return
+        let curUser = room.playerList.find(p => (p.id === socket.id))
+        if (!curUser || !curUser.admin) return
+        if (!room.customCards) room.customCards = {}
+        room.customCards[obj.name] = { image: obj.image || '' }
+        saveGameStatusOnRedis()
+        io.to(obj.room).emit('customcards', room.customCards)
     })
 
     socket.on('updateorder', orderobj => {
@@ -427,7 +440,8 @@ function updateGameStatus (player, socket) {
         player.order = 1
         gameStatus[player.room] = {
             cardShuffleSequence: 0,
-            playerList: [player]
+            playerList: [player],
+            customCards: {}
         }
         io.to(player.id).emit('youareadmin');
     }
