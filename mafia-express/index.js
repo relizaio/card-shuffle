@@ -70,6 +70,10 @@ io.on('connection', function(socket){
                     io.to(curUser.id).emit('youareadmin')
                 }
             }
+            // gameType is emitted before customcards so the client applies
+            // the preset's base roles first, then merges any custom additions
+            // on top regardless of arrival order.
+            io.to(socket.id).emit('gametype', gameStatus[roomobj.room].gameType || 'classic-mafia')
             io.to(socket.id).emit('customcards', gameStatus[roomobj.room].customCards || {})
         }
         sendPlayerList(roomobj.room, socket.id)
@@ -84,6 +88,22 @@ io.on('connection', function(socket){
         if (!room.customCards) room.customCards = {}
         room.customCards[obj.name] = { image: obj.image || '' }
         saveGameStatusOnRedis()
+        io.to(obj.room).emit('customcards', room.customCards)
+    })
+
+    socket.on('setgametype', function (obj) {
+        if (!obj || !obj.room || !obj.gameType) return
+        let room = gameStatus[obj.room]
+        if (!room) return
+        let curUser = room.playerList.find(p => (p.id === socket.id))
+        if (!curUser || !curUser.admin) return
+        // Switching presets clears any custom roles added on top — they
+        // were specific to the previous preset and rarely make sense in
+        // a different game.
+        room.gameType = obj.gameType
+        room.customCards = {}
+        saveGameStatusOnRedis()
+        io.to(obj.room).emit('gametype', room.gameType)
         io.to(obj.room).emit('customcards', room.customCards)
     })
 
@@ -441,7 +461,8 @@ function updateGameStatus (player, socket) {
         gameStatus[player.room] = {
             cardShuffleSequence: 0,
             playerList: [player],
-            customCards: {}
+            customCards: {},
+            gameType: 'classic-mafia'
         }
         io.to(player.id).emit('youareadmin');
     }

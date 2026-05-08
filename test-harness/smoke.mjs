@@ -219,6 +219,116 @@ try {
         }
     })
 
+    // ---- Test 7: Game-type presets ----
+    const presetRoom = 'preset-' + Math.floor(Math.random() * 1e9).toString(36)
+    const ctxPr = await browser.createBrowserContext()
+    const adm = await ctxPr.newPage()
+    recordPage(adm, 'preset-admin')
+
+    await adm.goto(`${BASE}/cards/${presetRoom}`, { waitUntil: 'networkidle2', timeout: 30000 })
+    await adm.waitForSelector('#enter-name-input', { timeout: 10000 })
+    await adm.type('#enter-name-input', 'Eve')
+    await adm.evaluate(() => {
+        const btn = Array.from(document.querySelectorAll('button')).find((b) => b.type === 'submit')
+        btn.click()
+    })
+    await adm.waitForFunction(() => document.body.innerText.includes('You are game master of this room'), { timeout: 10000 })
+
+    const cellsOf = (page) => page.$$eval('.card-cell-name', (els) => els.map((e) => e.innerText.toLowerCase().trim()))
+
+    await check('default preset is classic mafia (sheriff/godfather/mafia/villager)', async () => {
+        const cells = await cellsOf(adm)
+        const expected = ['sheriff', 'godfather', 'mafia', 'villager']
+        for (const role of expected) {
+            if (!cells.includes(role)) throw new Error(`expected '${role}' in default; got: ${JSON.stringify(cells)}`)
+        }
+    })
+
+    await check('switching to Werewolf rewrites cards to werewolf preset', async () => {
+        await adm.evaluate(() => {
+            const sel = document.querySelector('#preset-select')
+            sel.value = 'werewolf'
+            sel.dispatchEvent(new Event('change', { bubbles: true }))
+        })
+        await adm.waitForFunction(
+            () => Array.from(document.querySelectorAll('.card-cell-name'))
+                .some((s) => s.innerText.toLowerCase().trim() === 'werewolf'),
+            { timeout: 5000 }
+        )
+        const cells = await cellsOf(adm)
+        const expected = ['werewolf', 'seer', 'hunter', 'doctor', 'prostitute', 'tough guy', 'villager']
+        for (const role of expected) {
+            if (!cells.includes(role)) throw new Error(`expected '${role}' in werewolf; got: ${JSON.stringify(cells)}`)
+        }
+        // No leftover Mafia-only roles
+        if (cells.includes('godfather') || cells.includes('sheriff') || cells.includes('mafia')) {
+            throw new Error(`werewolf preset should not include Mafia roles; got: ${JSON.stringify(cells)}`)
+        }
+    })
+
+    await check('switching to Avalon rewrites cards to avalon preset', async () => {
+        await adm.evaluate(() => {
+            const sel = document.querySelector('#preset-select')
+            sel.value = 'avalon'
+            sel.dispatchEvent(new Event('change', { bubbles: true }))
+        })
+        await adm.waitForFunction(
+            () => Array.from(document.querySelectorAll('.card-cell-name'))
+                .some((s) => s.innerText.toLowerCase().trim() === 'merlin'),
+            { timeout: 5000 }
+        )
+        const cells = await cellsOf(adm)
+        const expected = ['merlin', 'percival', 'loyal servant', 'assassin', 'mordred', 'morgana', 'minion']
+        for (const role of expected) {
+            if (!cells.includes(role)) throw new Error(`expected '${role}' in avalon; got: ${JSON.stringify(cells)}`)
+        }
+    })
+
+    await check('preset persists across reload (server-side state)', async () => {
+        await adm.reload({ waitUntil: 'networkidle2', timeout: 30000 })
+        await adm.waitForFunction(() => document.body.innerText.includes('Card distribution'), { timeout: 10000 })
+        // give the gametype + customcards events time to land
+        await adm.waitForFunction(
+            () => Array.from(document.querySelectorAll('.card-cell-name'))
+                .some((s) => s.innerText.toLowerCase().trim() === 'merlin'),
+            { timeout: 5000 }
+        )
+        const sel = await adm.$eval('#preset-select', (el) => el.value)
+        if (sel !== 'avalon') throw new Error(`preset selector reverted to '${sel}' after reload`)
+    })
+
+    await check('switching to Resistance clears any custom roles previously added', async () => {
+        // Add a custom role on top of Avalon first
+        await adm.evaluate(() => document.querySelector('.card-cell-add').click())
+        await adm.waitForSelector('#add_custom_role_input', { timeout: 5000 })
+        await adm.type('#add_custom_role_input', 'oberon')
+        await adm.evaluate(() => document.querySelector('form.modal-form button[type=submit]').click())
+        await adm.waitForFunction(
+            () => Array.from(document.querySelectorAll('.card-cell-name'))
+                .some((s) => s.innerText.toLowerCase().trim() === 'oberon'),
+            { timeout: 5000 }
+        )
+        // Now flip to Resistance
+        await adm.evaluate(() => {
+            const sel = document.querySelector('#preset-select')
+            sel.value = 'resistance'
+            sel.dispatchEvent(new Event('change', { bubbles: true }))
+        })
+        await adm.waitForFunction(
+            () => Array.from(document.querySelectorAll('.card-cell-name'))
+                .some((s) => s.innerText.toLowerCase().trim() === 'spy'),
+            { timeout: 5000 }
+        )
+        const cells = await cellsOf(adm)
+        if (cells.includes('oberon')) {
+            throw new Error(`custom 'oberon' should have been cleared on preset switch; got: ${JSON.stringify(cells)}`)
+        }
+        const expected = ['spy', 'resistance']
+        for (const role of expected) {
+            if (!cells.includes(role)) throw new Error(`expected '${role}' in resistance; got: ${JSON.stringify(cells)}`)
+        }
+    })
+
     if (errors.length === 0) {
         console.log('\nALL CHECKS PASSED')
     } else {
