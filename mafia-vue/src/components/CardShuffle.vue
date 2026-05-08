@@ -68,6 +68,12 @@
 
         <div class="admin-distribution">
             <h3 class="admin-subtitle">Card distribution</h3>
+            <label class="inline-control preset-control">
+                <span class="inline-label">Game type</span>
+                <select id="preset-select" class="form-control" :value="gameType" @change="onGameTypeChange">
+                    <option v-for="(preset, key) in presets" :key="key" :value="key">{{ preset.label }}</option>
+                </select>
+            </label>
             <p class="admin-hint">Distributed {{ distributedCards }} cards for {{ playersInGame.length }} players.</p>
             <div class="cards-grid">
                 <label v-for="gamecard in Object.keys(cards)" :key="gamecard" class="card-cell">
@@ -181,6 +187,62 @@
 <script>
 let flashTimer = null
 
+// Preset role sets keyed by gameType. The `image` field maps each role to
+// one of the four CloudFront-hosted image themes (sheriff/godfather/mafia/
+// villager) since no other artwork exists yet — see PR description.
+const PRESETS = {
+    'classic-mafia': {
+        label: 'Classic Mafia',
+        cards: {
+            sheriff: { num: 1, image: 'sheriff' },
+            godfather: { num: 1, image: 'godfather' },
+            mafia: { num: 2, image: 'mafia' },
+            villager: { num: 6, image: 'villager' }
+        }
+    },
+    'werewolf': {
+        label: 'Werewolf',
+        cards: {
+            werewolf: { num: 2, image: 'mafia' },
+            seer: { num: 1, image: 'sheriff' },
+            hunter: { num: 1, image: 'sheriff' },
+            doctor: { num: 1, image: 'sheriff' },
+            prostitute: { num: 1, image: 'villager' },
+            'tough guy': { num: 1, image: 'villager' },
+            villager: { num: 3, image: 'villager' }
+        }
+    },
+    'resistance': {
+        label: 'The Resistance',
+        cards: {
+            spy: { num: 4, image: 'mafia' },
+            resistance: { num: 6, image: 'villager' }
+        }
+    },
+    'avalon': {
+        label: 'Avalon',
+        cards: {
+            merlin: { num: 1, image: 'sheriff' },
+            percival: { num: 1, image: 'sheriff' },
+            'loyal servant': { num: 4, image: 'villager' },
+            assassin: { num: 1, image: 'mafia' },
+            mordred: { num: 1, image: 'godfather' },
+            morgana: { num: 1, image: 'mafia' },
+            minion: { num: 1, image: 'mafia' }
+        }
+    }
+}
+
+const DEFAULT_GAME_TYPE = 'classic-mafia'
+
+function clonePresetCards (preset) {
+    const out = {}
+    Object.keys(preset.cards).forEach((k) => {
+        out[k] = { num: preset.cards[k].num, image: preset.cards[k].image }
+    })
+    return out
+}
+
 export default {
     name: 'CardShuffle',
     data () {
@@ -199,24 +261,9 @@ export default {
             alertMsg: '',
             showAddRoleModal: false,
             playerList: [],
-            cards: {
-                sheriff: {
-                    num: 1,
-                    image: 'sheriff'
-                },
-                godfather: {
-                    num: 1,
-                    image: 'godfather'
-                },
-                mafia: {
-                    num: 2,
-                    image: 'mafia'
-                },
-                villager: {
-                    num: 6,
-                    image: 'villager'
-                }
-            },
+            gameType: DEFAULT_GAME_TYPE,
+            presets: PRESETS,
+            cards: clonePresetCards(PRESETS[DEFAULT_GAME_TYPE]),
             cardsWithImages: ['sheriff', 'godfather', 'mafia', 'villager'],
             imagePrefix: 'https://d7ge14utcyki8.cloudfront.net/mafia/'
         }
@@ -233,6 +280,15 @@ export default {
         cardassigned (card) {
             this.flashAlert('You have been assigned a card: ' + card + '!')
             this.requestMyPlayer()
+        },
+        gametype (gameType) {
+            // Server is the source of truth for which preset the room is
+            // currently using. Replace the cards map with the preset's
+            // base set; any persisted custom roles will be merged on top
+            // by the customcards handler.
+            if (!gameType || !PRESETS[gameType]) return
+            this.gameType = gameType
+            this.cards = clonePresetCards(PRESETS[gameType])
         },
         customcards (cardsMap) {
             // Server is the source of truth for custom-role definitions on
@@ -311,6 +367,14 @@ export default {
             this.alertVisible = true
             if (flashTimer) clearTimeout(flashTimer)
             flashTimer = setTimeout(() => { this.alertVisible = false }, 5000)
+        },
+        onGameTypeChange (event) {
+            const newType = event.target.value
+            if (!newType || newType === this.gameType || !PRESETS[newType]) return
+            this.$socket.emit('setgametype', { room: this.room, gameType: newType })
+            // Optimistic local update; the server's broadcast will reaffirm.
+            this.gameType = newType
+            this.cards = clonePresetCards(PRESETS[newType])
         },
         addRoleSubmit () {
             // Optimistic local update; server will broadcast back via
@@ -683,6 +747,11 @@ export default {
 .admin-distribution {
     border-top: 1px dashed var(--border);
     padding-top: 1rem;
+}
+
+.preset-control {
+    margin: 0.4rem 0 0.85rem;
+    max-width: 280px;
 }
 
 .admin-subtitle {
