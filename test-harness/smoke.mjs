@@ -149,6 +149,76 @@ try {
         }
     })
 
+    // ---- Test 6: Custom roles persist per room across F5 ----
+    const persistRoom = 'persist-' + Math.floor(Math.random() * 1e9).toString(36)
+    const ctxP = await browser.createBrowserContext()
+    const pp = await ctxP.newPage()
+    recordPage(pp, 'persist')
+
+    await pp.goto(`${BASE}/cards/${persistRoom}`, { waitUntil: 'networkidle2', timeout: 30000 })
+    await pp.waitForSelector('#enter-name-input', { timeout: 10000 })
+    await pp.type('#enter-name-input', 'Carol')
+    await pp.evaluate(() => {
+        const btn = Array.from(document.querySelectorAll('button')).find((b) => b.type === 'submit')
+        btn.click()
+    })
+    await pp.waitForFunction(() => document.body.innerText.includes('You are game master of this room'), { timeout: 10000 })
+
+    // Open Add Custom Role modal
+    await pp.waitForSelector('.card-cell-add', { timeout: 5000 })
+    await pp.evaluate(() => document.querySelector('.card-cell-add').click())
+    await pp.waitForSelector('#add_custom_role_input', { timeout: 5000 })
+    await pp.type('#add_custom_role_input', 'medic')
+    // Pick the first picture option (sheriff) so the role has an image
+    await pp.evaluate(() => {
+        const sel = document.querySelector('#add_custom_role_picture')
+        sel.value = 'sheriff'
+        sel.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    await pp.evaluate(() => document.querySelector('form.modal-form button[type=submit]').click())
+
+    await check('custom role appears in card distribution after add', async () => {
+        await pp.waitForFunction(
+            () => Array.from(document.querySelectorAll('.card-cell-name'))
+                .some((s) => s.innerText.toLowerCase().trim() === 'medic'),
+            { timeout: 5000 }
+        )
+    })
+
+    // Reload (F5) — the local component state resets, so the custom role
+    // can only come back if the server is broadcasting it on connect.
+    await pp.reload({ waitUntil: 'networkidle2', timeout: 30000 })
+    await pp.waitForFunction(() => document.body.innerText.includes('Card distribution'), { timeout: 10000 })
+
+    await check('custom role persists after reload (server-side state)', async () => {
+        const cells = await pp.$$eval('.card-cell-name', (els) => els.map((e) => e.innerText.toLowerCase().trim()))
+        if (!cells.includes('medic')) {
+            throw new Error(`'medic' missing from card distribution after reload; got: ${JSON.stringify(cells)}`)
+        }
+    })
+
+    // A fresh observer in a brand-new browser context (different uuid)
+    // should also see the custom role on first connect.
+    const ctxObs = await browser.createBrowserContext()
+    const obs = await ctxObs.newPage()
+    recordPage(obs, 'observer')
+    await obs.goto(`${BASE}/cards/${persistRoom}`, { waitUntil: 'networkidle2', timeout: 30000 })
+    await obs.waitForSelector('#enter-name-input', { timeout: 10000 })
+    await obs.type('#enter-name-input', 'Dave')
+    await obs.evaluate(() => {
+        const btn = Array.from(document.querySelectorAll('button')).find((b) => b.type === 'submit')
+        btn.click()
+    })
+    // Dave isn't admin so the card-distribution panel won't render for them,
+    // but the persisted role should reach Carol's tab too. Also re-fetch on Carol.
+    await new Promise((r) => setTimeout(r, 1500))
+    await check('Carol still sees the custom role with Dave joined', async () => {
+        const cells = await pp.$$eval('.card-cell-name', (els) => els.map((e) => e.innerText.toLowerCase().trim()))
+        if (!cells.includes('medic')) {
+            throw new Error(`'medic' lost after second player joined; got: ${JSON.stringify(cells)}`)
+        }
+    })
+
     if (errors.length === 0) {
         console.log('\nALL CHECKS PASSED')
     } else {
