@@ -151,6 +151,7 @@
             <div v-if="iPlayer.card && game === iPlayer.game" class="card-reveal">
                 <img v-if="cardImage" class="card-image" :src="cardImage" :title="iPlayer.card" :alt="'Your card: ' + iPlayer.card" />
                 <span class="card-name">{{ iPlayer.card }}</span>
+                <p v-if="cardInstruction" class="card-instruction">{{ cardInstruction }}</p>
             </div>
             <div v-if="game > 0 && game === iPlayer.game" class="wink-block">
                 <p class="wink-help">Tap on a player's name in the list above to listen for their wink.</p>
@@ -234,6 +235,35 @@ const PRESETS = {
 }
 
 const DEFAULT_GAME_TYPE = 'classic-mafia'
+
+// Per-role instructions shown to the player who is dealt that card.
+// Custom roles (added by the game master) intentionally have no entry —
+// the card-reveal panel falls back to just the role name.
+const ROLE_INSTRUCTIONS = {
+    // Classic Mafia
+    sheriff: 'You are the Sheriff. At night, you may secretly check one player to learn whether they are a member of the Mafia. Your goal is to identify the black players and lead the village vote — but be careful, revealing yourself too early makes you the Mafia\u2019s first target.',
+    godfather: 'You are the Godfather, the leader of the Mafia. At night, your team chooses a villager to eliminate. To the Sheriff\u2019s investigation you appear innocent. Your goal is for the black players to reach equal numbers with the village.',
+    mafia: 'You are a member of the Mafia. At night, work with your fellow black players to choose a victim. By day, blend in and avoid suspicion. Your goal is for the black players to reach equal numbers with the village.',
+    villager: 'You are a Villager. You have no special abilities — only your wits, observations, and the daytime discussion. Work with the village to identify and vote out the black players.',
+    // Werewolf
+    werewolf: 'You are a Werewolf. Each night, your pack chooses a villager to devour. By day, blend in. You win when werewolves equal or outnumber the villagers.',
+    seer: 'You are the Seer. Each night you may secretly learn whether one player is a Werewolf. Use this knowledge carefully — revealing yourself makes you the pack\u2019s next target.',
+    hunter: 'You are the Hunter. If you are eliminated (by night attack or village vote), you may take one player down with you in your final shot. Choose your target wisely.',
+    doctor: 'You are the Doctor. Each night you may protect one player from being killed. You may save yourself, but you cannot save everyone — pick well.',
+    prostitute: 'You are the Prostitute. Each night, choose a player to spend the night with. They cannot be targeted by Werewolves while with you, but they also cannot use their own night ability.',
+    'tough guy': 'You are the Tough Guy. If the Werewolves attack you at night, you survive the first attack but are revealed; you die the following night unless the Doctor saves you.',
+    // The Resistance
+    spy: 'You are a Spy. You and your fellow Spies know each other\u2019s identities. Sabotage missions to make them fail without exposing yourselves. The Spies win when 3 missions fail.',
+    resistance: 'You are a member of the Resistance. You don\u2019t know who the Spies are — deduce it from discussion and from how missions go. The Resistance wins when 3 missions succeed.',
+    // Avalon
+    merlin: 'You are Merlin. You see the minions of Mordred (except Mordred himself), but you must hide your identity — if the Assassin correctly names you at the end, evil wins.',
+    percival: 'You are Percival. You see Merlin and Morgana, but cannot tell which is which. Protect Merlin and trust the right one.',
+    'loyal servant': 'You are a Loyal Servant of Arthur. You have no special knowledge — discuss with your team and decide who can be trusted. The good side wins by succeeding 3 quests.',
+    assassin: 'You are the Assassin, a minion of Mordred. You know your fellow minions. If 3 quests succeed, you have one last chance — name Merlin to win the game for evil.',
+    mordred: 'You are Mordred. You are a minion of evil, but Merlin does NOT see you. Work with your fellow minions to fail quests and protect your identity.',
+    morgana: 'You are Morgana, a minion of Mordred. To Percival you appear as Merlin — exploit this confusion. Work with the evil team to fail 3 quests.',
+    minion: 'You are a Minion of Mordred. You know your fellow evil players. Help your team fail 3 quests or hunt down Merlin.'
+}
 
 function clonePresetCards (preset) {
     const out = {}
@@ -489,6 +519,10 @@ export default {
     computed: {
         hasPlayer () {
             return !!(this.iPlayer && Object.keys(this.iPlayer).length)
+        },
+        cardInstruction () {
+            if (!this.iPlayer || !this.iPlayer.card) return ''
+            return ROLE_INSTRUCTIONS[this.iPlayer.card.toLowerCase()] || ''
         },
         seatBadgeLabel () {
             const order = this.iPlayer?.order
@@ -950,6 +984,15 @@ export default {
     color: var(--brand-primary-dark);
     text-transform: capitalize;
     letter-spacing: 0.02em;
+}
+
+.card-instruction {
+    margin: 0.25rem 0 0;
+    max-width: 540px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    line-height: 1.5;
 }
 
 .host-game-list {
