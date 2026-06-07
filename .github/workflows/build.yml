@@ -31,6 +31,7 @@ jobs:
           source_code_sbom_type: npm
           create_component: 'true'
   build-mafia-express:
+    if: github.ref == 'refs/heads/main'
     permissions:
       contents: read
       id-token: write
